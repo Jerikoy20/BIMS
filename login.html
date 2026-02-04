@@ -3,37 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BIMS Login</title>
+    <title>OE-BIMS Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f4f4f9; margin: 0; }
-        .login-box { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; width: 300px; }
-        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
-        button:hover { background-color: #0056b3; }
-        .error { color: red; display: none; margin-top: 10px; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f3f4f6; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+        }
+        .login-card { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); 
+            width: 100%; 
+            max-width: 320px; 
+            text-align: center;
+        }
+        h2 { color: #1f2937; margin-bottom: 5px; }
+        p { color: #6b7280; font-size: 14px; margin-bottom: 25px; }
+        
+        input { 
+            width: 100%; 
+            padding: 12px; 
+            margin-bottom: 15px; 
+            border: 1px solid #d1d5db; 
+            border-radius: 6px; 
+            box-sizing: border-box; 
+            font-size: 14px;
+        }
+        button { 
+            width: 100%; 
+            padding: 12px; 
+            background-color: #2563eb; 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: 600;
+            font-size: 14px;
+        }
+        button:hover { background-color: #1d4ed8; }
+        .error { color: #dc2626; font-size: 13px; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
 
-    <div class="login-box">
-        <h2>🔒 BIMS Login</h2>
+    <div class="login-card">
+        <h2>OE-BIMS</h2>
+        <p>Sign in to your account</p>
+        
         <input type="password" id="password" placeholder="Enter Password">
-        <button onclick="login()">Login</button>
-        <p class="error" id="error-msg">Incorrect Password!</p>
+        <button onclick="login()">Sign In</button>
+        <div id="error-msg" class="error">Incorrect password</div>
     </div>
 
     <script>
         function login() {
             const password = document.getElementById('password').value;
-            
-            // simple password check (In a real app, the server does this!)
+            // Simple check
             if (password === "admin123") {
-                localStorage.setItem("isLoggedIn", "true"); // Save login status
-                window.location.href = "index.html"; // Go to main app
+                localStorage.setItem("isLoggedIn", "true");
+                window.location.href = "index.html"; // Redirects to main page
             } else {
                 document.getElementById('error-msg').style.display = "block";
             }
         }
+        
+        // Allow pressing "Enter" to login
+        document.getElementById("password").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") login();
+        });
     </script>
 
 </body>
