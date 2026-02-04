@@ -6,7 +6,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // 🔴 PASTE YOUR MONGODB LINK HERE (With the password!)
-const MONGO_URI = "mongodb+srv://admin:bims2026@cluster0.abcde.mongodb.net/?retryWrites=true&w=majority";
+const MONGO_URI = "mongodb+srv://jerikoykoy_db_user:bims123@cluster0.wahy7zh.mongodb.net/?appName=Cluster0";
 
 app.use(cors());
 app.use(express.json());
