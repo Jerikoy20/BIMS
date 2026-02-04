@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BIMS Inventory Manager</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background-color: #f4f4f9; max-width: 700px; margin: auto; }
+        h1 { color: #333; text-align: center; margin-bottom: 5px; }
+        
+        /* Grand Total Banner */
+        .summary-box { background: #333; color: white; padding: 15px; border-radius: 8px; text-align: center; font-size: 20px; margin-bottom: 20px; }
+        .summary-box span { font-weight: bold; color: #28a745; font-size: 24px; }
+
+        /* Inputs */
+        .add-form { background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; display: flex; gap: 10px; }
+        input { padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        input[type="text"] { flex-grow: 2; }
+        input[type="number"] { width: 80px; } 
+
+        button#add-btn { background-color: #28a745; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
+        
+        .search-container { margin-bottom: 20px; }
+        #searchInput { width: 100%; box-sizing: border-box; padding: 12px; font-size: 16px; border: 2px solid #007bff; border-radius: 5px; }
+
+        /* Item Card Styles */
+        .card { background: white; padding: 12px 15px; margin-bottom: 8px; border-radius: 5px; border-left: 5px solid #007bff; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        
+        /* LOW STOCK STYLES (New!) */
+        .card.low-stock { border-left: 5px solid #dc3545; background-color: #fff5f5; }
+        .warning-label { color: #dc3545; font-weight: bold; font-size: 12px; display: block; margin-top: 4px;}
+
+        .item-info { flex-grow: 1; }
+        .item-name { font-weight: bold; font-size: 18px; display: block; }
+        .item-details { color: #666; font-size: 14px; }
+        .total-value { color: #28a745; font-weight: bold; margin-left: 10px; }
+
+        .btn-group { display: flex; gap: 5px; margin-left: 15px;}
+        .edit-btn { background-color: #ffc107; color: black; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+        .delete-btn { background-color: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<script>
+    // Security Check: If not logged in, kick them out!
+    if (localStorage.getItem("isLoggedIn") !== "true") {
+        window.location.href = "login.html";
+    }
+
+    function logout() {
+        localStorage.removeItem("isLoggedIn");
+        window.location.href = "login.html";
+    }
+</script>
+
+    <h1>📦 BIMS Inventory</h1>
+<button onclick="logout()" style="background: #666; font-size: 12px; padding: 5px 10px; margin-top: 5px;">Logout</button>
+    
+    <div class="summary-box">
+        Total Inventory Value: <span id="grand-total">$0.00</span>
+    </div>
+
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="🔍 Search items..." onkeyup="filterItems()">
+    </div>
+
+    <div class="add-form">
+        <input type="text" id="itemName" placeholder="Item Name">
+        <input type="number" id="itemQty" placeholder="Qty">
+        <input type="number" id="itemPrice" placeholder="Price ($)">
+        <button id="add-btn" onclick="addItem()">Add</button>
+    </div>
+
+    <div id="item-list"></div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/items';
+        let allItems = [];
+
+        async function fetchInventory() {
+            const response = await fetch(API_URL);
+            allItems = await response.json();
+            renderItems(allItems);
+            calculateGrandTotal(allItems);
+        }
+
+        function calculateGrandTotal(items) {
+            const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            document.getElementById('grand-total').innerText = '$' + total.toFixed(2);
+        }
+
+        function renderItems(itemsToRender) {
+            const listDiv = document.getElementById('item-list');
+            listDiv.innerHTML = ''; 
+            
+            if (itemsToRender.length === 0) {
+                listDiv.innerHTML = '<p style="text-align:center;">No items found.</p>';
+                return;
+            }
+
+            itemsToRender.forEach(item => {
+                const itemTotal = (item.price * item.quantity).toFixed(2);
+                
+                // LOW STOCK LOGIC
+                let cardClass = 'card';
+                let warningHtml = '';
+                
+                if (item.quantity < 5) {
+                    cardClass += ' low-stock'; // Add red styling
+                    warningHtml = '<span class="warning-label">⚠️ LOW STOCK REORDER NOW</span>';
+                }
+
+                const div = document.createElement('div');
+                div.className = cardClass; // Apply the class
+                div.innerHTML = `
+                    <div class="item-info">
+                        <span class="item-name">${item.name}</span>
+                        <span class="item-details">Qty: ${item.quantity} | Price: $${item.price}</span>
+                        <span class="total-value">(Value: $${itemTotal})</span>
+                        ${warningHtml} </div>
+                    <div class="btn-group">
+                        <button class="edit-btn" onclick="editItem(${item.id}, '${item.name}', ${item.quantity}, ${item.price})">Edit</button>
+                        <button class="delete-btn" onclick="deleteItem(${item.id})">Delete</button>
+                    </div>
+                `;
+                listDiv.appendChild(div);
+            });
+        }
+
+        function filterItems() {
+            const searchText = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allItems.filter(item => item.name.toLowerCase().includes(searchText));
+            renderItems(filtered);
+        }
+
+        async function addItem() {
+            const name = document.getElementById('itemName').value;
+            const quantity = document.getElementById('itemQty').value;
+            const price = document.getElementById('itemPrice').value;
+
+            if (!name || !quantity || !price) {
+                alert("Please fill in Name, Qty, and Price!");
+                return;
+            }
+
+            await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, quantity, price })
+            });
+
+            document.getElementById('itemName').value = '';
+            document.getElementById('itemQty').value = '';
+            document.getElementById('itemPrice').value = '';
+            fetchInventory();
+        }
+
+        async function deleteItem(id) {
+            if(confirm('Delete this item?')) {
+                await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
+                fetchInventory();
+            }
+        }
+
+        async function editItem(id, oldName, oldQty, oldPrice) {
+            const newName = prompt("Enter Name:", oldName);
+            const newQty = prompt("Enter Quantity:", oldQty);
+            const newPrice = prompt("Enter Price:", oldPrice);
+
+            if (newName && newQty && newPrice) {
+                await fetch(`${API_URL}/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: newName, quantity: newQty, price: newPrice })
+                });
+                fetchInventory();
+            }
+        }
+
+        fetchInventory();
+    </script>
+
+</body>
+</html>
