@@ -1,69 +1,65 @@
 const express = require('express');
 const cors = require('cors');
-const fs = require('fs');
+const mongoose = require('mongoose');
 
 const app = express();
-// 1. THIS FIXES THE "ERROR": It tells the cloud to use its own port.
 const PORT = process.env.PORT || 3000;
-const DB_FILE = './database.json';
+
+// 🔴 PASTE YOUR MONGODB CONNECTION STRING HERE 🔴
+// It should look like: mongodb+srv://admin:password...
+const MONGO_URI = "mongodb+srv://jerikoykoy:<admin123>@cluster0.wahy7zh.mongodb.net/?appName=Cluster0";
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static('.'));
 
-// 2. THIS FIXES "CANNOT GET /": It serves your index.html and login.html
-app.use(express.static('.')); 
+// 1. CONNECT TO MONGODB
+mongoose.connect(MONGO_URI)
+    .then(() => console.log("✅ Connected to MongoDB"))
+    .catch(err => console.error("❌ MongoDB Error:", err));
 
-// --- DATABASE FUNCTIONS ---
-const readDatabase = () => {
-    if (!fs.existsSync(DB_FILE)) return [];
-    const data = fs.readFileSync(DB_FILE);
-    return JSON.parse(data);
-};
+// 2. DEFINE THE DATA STRUCTURE (Schema)
+const ItemSchema = new mongoose.Schema({
+    name: String,
+    quantity: Number,
+    price: Number
+});
 
-const writeDatabase = (data) => {
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
-};
+const Item = mongoose.model('Item', ItemSchema);
 
 // --- API ROUTES ---
 
-app.get('/items', (req, res) => {
-    res.json(readDatabase());
+// GET all items
+app.get('/items', async (req, res) => {
+    const items = await Item.find();
+    res.json(items);
 });
 
-app.post('/items', (req, res) => {
-    const inventory = readDatabase();
-    const newItem = {
-        id: Date.now(),
+// ADD item
+app.post('/items', async (req, res) => {
+    const newItem = new Item({
         name: req.body.name,
         quantity: parseInt(req.body.quantity),
-        price: parseFloat(req.body.price) || 0
-    };
-    inventory.push(newItem);
-    writeDatabase(inventory);
+        price: parseFloat(req.body.price)
+    });
+    await newItem.save(); // Saves to the Cloud!
     res.json(newItem);
 });
 
-app.put('/items/:id', (req, res) => {
-    const inventory = readDatabase();
-    const id = parseInt(req.params.id);
-    const item = inventory.find(i => i.id === id);
-    
-    if (item) {
-        item.name = req.body.name;
-        item.quantity = parseInt(req.body.quantity);
-        item.price = parseFloat(req.body.price);
-        writeDatabase(inventory);
-        res.json(item);
-    } else {
-        res.status(404).send("Item not found");
-    }
+// UPDATE item
+app.put('/items/:id', async (req, res) => {
+    const { id } = req.params;
+    const updatedItem = await Item.findByIdAndUpdate(id, {
+        name: req.body.name,
+        quantity: parseInt(req.body.quantity),
+        price: parseFloat(req.body.price)
+    }, { new: true });
+    res.json(updatedItem);
 });
 
-app.delete('/items/:id', (req, res) => {
-    let inventory = readDatabase();
-    const id = parseInt(req.params.id);
-    inventory = inventory.filter(i => i.id !== id);
-    writeDatabase(inventory);
+// DELETE item
+app.delete('/items/:id', async (req, res) => {
+    await Item.findByIdAndDelete(req.params.id);
     res.json({ message: "Deleted" });
 });
 
