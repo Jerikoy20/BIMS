@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1770183816757,
+    "name": "Gaming Laptop",
+    "quantity": 2,
+    "price": 1000
+  },
+  {
+    "id": 1770183866397,
+    "name": "Mouse",
+    "quantity": 10,
+    "price": 50
+  }
+]
