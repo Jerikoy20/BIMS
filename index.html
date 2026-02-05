@@ -160,27 +160,76 @@
     </div>
 
     <div class="main-content">
-        <div class="header-row">
-            <h1>Dashboard</h1>
-            <button class="btn-add" onclick="openAddModal()">+ Add Item</button>
+    <div class="header-row">
+        <div>
+            <h1 style="margin:0;">Dashboard</h1>
+            <p style="color:gray; margin:5px 0 0 0;">Overview of your inventory</p>
         </div>
+        <button class="btn-add" onclick="openModal('addModal')">+ Add Item</button>
+    </div>
 
-        <div class="stats-grid">
-            <div class="card"><h4>Total Items</h4><h2 id="total-count">0</h2></div>
-            <div class="card"><h4>Transactions</h4><h2 id="trans-count">0</h2></div>
+    <div class="stats-grid">
+        <div class="card">
+            <h3 style="margin:0; font-size:14px; color:gray;">Total Items</h3>
+            <h2 id="total-items">0</h2>
         </div>
+        <div class="card">
+            <h3 style="margin:0; font-size:14px; color:gray;">Active Borrows</h3>
+            <h2 id="active-borrows">0</h2>
+        </div>
+    </div>
 
-        <div class="chart-container">
-            <div class="chart-box">
-                <canvas id="myChart"></canvas>
-            </div>
-            <div>
-                <h3>Inventory Status</h3>
-                <p style="color: gray; font-size: 14px; max-width: 200px;">
-                    Real-time visualization of your <br> released vs. available assets.
-                </p>
-            </div>
+    <div class="chart-container" style="display: flex; align-items: center; justify-content: space-between; background: white; padding: 25px; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 30px;">
+        <div style="flex: 1;">
+            <h3 style="margin:0;">Inventory Status</h3>
+            <p style="color: gray; font-size: 14px; margin-top: 5px;">Real-time view of Available vs. Released items.</p>
         </div>
+        <div style="width: 200px; height: 200px; position: relative;">
+            <canvas id="inventoryChart"></canvas>
+        </div>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <div class="section-title" style="margin: 0;">Equipment Inventory</div>
+        <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="🔍 Search items..." 
+               style="padding: 8px; border: 1px solid #ccc; border-radius: 6px; width: 200px;">
+    </div>
+
+    <div class="table-box">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Qty</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="inventory-list">
+                </tbody>
+        </table>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 30px; margin-bottom: 15px;">
+        <div class="section-title" style="margin: 0;">Recent Requests</div>
+        <button onclick="exportReport()" style="background: #10b981; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 13px;">
+            <i class="fa-solid fa-file-excel"></i> Export Report
+        </button>
+    </div>
+    <div class="table-box">
+        <table id="report-table">
+            <thead>
+                <tr>
+                    <th>Equipment</th>
+                    <th>Borrower</th>
+                    <th>Purpose</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="transaction-list"></tbody>
+        </table>
+    </div>
+</div>
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 30px; margin-bottom: 15px;">
     <div class="section-title" style="margin: 0;">Equipment Inventory</div>
@@ -238,21 +287,152 @@
     <script>
 
 
-function filterTable() {
-        // 1. Get the input and the table
+const API_URL = "https://bims-inventory.onrender.com"; // OR "http://localhost:3000" if testing locally
+
+    let myChart = null; // Global variable for the chart
+
+    // 1. Fetch Items (Populates Table + Updates Chart Data)
+    async function fetchItems() {
+        try {
+            const res = await fetch(`${API_URL}/items`);
+            const items = await res.json();
+            
+            const list = document.getElementById('inventory-list');
+            list.innerHTML = ''; // Clear existing list
+
+            let totalQty = 0;
+
+            items.forEach(item => {
+                totalQty += item.quantity;
+                
+                // Add row to table
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="font-weight: 500;">${item.name}</td>
+                    <td><span class="badge" style="background: #e0f2fe; color: #0284c7;">${item.quantity} units</span></td>
+                    <td>
+                        <button class="btn-borrow" onclick="openBorrowModal('${item._id}', '${item.name}')">Borrow</button>
+                    </td>
+                `;
+                list.appendChild(tr);
+            });
+
+            // Update "Total Items" Card
+            document.getElementById('total-items').innerText = totalQty;
+            
+            // Trigger Chart Update (Available Qty)
+            updateDashboardChart(totalQty);
+
+        } catch (err) {
+            console.error("Error fetching items:", err);
+        }
+    }
+
+    // 2. Fetch Transactions (Updates "Active Borrows" + Chart)
+    async function fetchTransactions() {
+        try {
+            const res = await fetch(`${API_URL}/transactions`);
+            const logs = await res.json();
+            
+            const list = document.getElementById('transaction-list');
+            list.innerHTML = '';
+            
+            let activeCount = 0;
+
+            logs.forEach(log => {
+                if(log.status === 'Released') activeCount++;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${log.equipmentName}</td>
+                    <td>${log.borrower}</td>
+                    <td>${log.purpose}</td>
+                    <td><span class="badge status-${log.status}">${log.status}</span></td>
+                    <td>
+                        ${log.status === 'Released' ? `<button class="btn-return" onclick="returnItem('${log._id}')">Return</button>` : ''}
+                    </td>
+                `;
+                list.appendChild(tr);
+            });
+
+            document.getElementById('active-borrows').innerText = activeCount;
+            
+            // Store active count for chart
+            window.activeBorrows = activeCount; 
+
+        } catch (err) {
+            console.error("Error fetching transactions:", err);
+        }
+    }
+
+    // 3. Draw/Update the Chart
+    function updateDashboardChart(availableQty) {
+        const releasedQty = window.activeBorrows || 0; // Get the count from transactions
+        const ctx = document.getElementById('inventoryChart').getContext('2d');
+
+        // Destroy old chart if it exists (prevents glitching)
+        if (myChart) myChart.destroy();
+
+        myChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Available', 'Released'],
+                datasets: [{
+                    data: [availableQty, releasedQty],
+                    backgroundColor: ['#2563eb', '#f3e8ff'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%', // Makes it a thinner donut
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+
+    // 4. Add Item Function
+    async function addItem() {
+        const name = document.getElementById('itemName').value;
+        const quantity = document.getElementById('itemQty').value;
+        const price = document.getElementById('itemPrice').value;
+
+        if (!name || !quantity) return alert("Please fill in fields");
+
+        await fetch(`${API_URL}/items`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, quantity, price })
+        });
+
+        closeModal('addModal');
+        fetchItems(); // REFRESH THE TABLE INSTANTLY
+        alert("Item Added!");
+    }
+
+    // ... (Keep your existing borrowItem, returnItem, exportReport functions here) ...
+
+    // INITIAL LOAD
+    fetchItems();
+    fetchTransactions();
+    
+    // Helper for Modals
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    
+    // Search Function
+    function filterTable() {
         const input = document.getElementById("searchInput");
         const filter = input.value.toUpperCase();
-        const table = document.getElementById("inventory-list"); // The tbody
+        const table = document.getElementById("inventory-list");
         const tr = table.getElementsByTagName("tr");
-
-        // 2. Loop through all table rows
         for (let i = 0; i < tr.length; i++) {
-            // Look at the first column (Item Name)
             const td = tr[i].getElementsByTagName("td")[0];
-            
             if (td) {
                 const txtValue = td.textContent || td.innerText;
-                // 3. If it matches, show it. If not, hide it.
                 if (txtValue.toUpperCase().indexOf(filter) > -1) {
                     tr[i].style.display = "";
                 } else {
