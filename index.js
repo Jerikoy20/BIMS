@@ -1,83 +1,83 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 🔴 PASTE YOUR MONGODB LINK HERE (With the password!)
+// 🔴 PASTE YOUR REAL MONGODB LINK HERE
+// (Make sure to replace <password> and check the cluster address!)
 const MONGO_URI = "mongodb+srv://jerikoykoy_db_user:bims123@cluster0.wahy7zh.mongodb.net/?appName=Cluster0";
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static('.'));
+app.use(express.static('.')); // Serve html files
 
+// Connect to MongoDB
 mongoose.connect(MONGO_URI)
     .then(() => console.log("✅ Connected to MongoDB"))
     .catch(err => console.error("❌ MongoDB Error:", err));
 
 // --- DATA MODELS ---
 
-// 1. Equipment Inventory
 const Item = mongoose.model('Item', new mongoose.Schema({
     name: String,
     quantity: Number,
     price: Number
 }));
 
-// 2. Borrowing Transactions (NEW!)
 const Transaction = mongoose.model('Transaction', new mongoose.Schema({
     equipmentName: String,
     borrower: String,
     purpose: String,
     date: String,
-    status: String // 'Released' or 'Returned'
+    status: String
 }));
 
-// --- API ROUTES ---
+// --- ROUTES ---
 
-// Get Inventory
+// 1. LOGIN (Security Route)
+app.post('/login', (req, res) => {
+    const { password } = req.body;
+    
+    // Check password on the server
+    if (password === "admin2026") { 
+        res.json({ success: true });
+    } else {
+        res.status(401).json({ success: false });
+    }
+});
+
+// 2. Inventory Routes
 app.get('/items', async (req, res) => {
     const items = await Item.find();
     res.json(items);
 });
 
-// Add Inventory
 app.post('/items', async (req, res) => {
     const newItem = new Item(req.body);
     await newItem.save();
     res.json(newItem);
 });
 
-// Delete Inventory
-app.delete('/items/:id', async (req, res) => {
-    await Item.findByIdAndDelete(req.params.id);
-    res.json({ message: "Deleted" });
-});
-
-// --- NEW TRANSACTION ROUTES ---
-
-// Get All Requests (For the Table)
+// 3. Transaction Routes
 app.get('/transactions', async (req, res) => {
-    const logs = await Transaction.find().sort({ _id: -1 }); // Newest first
+    const logs = await Transaction.find().sort({ _id: -1 });
     res.json(logs);
 });
 
-// Borrow an Item (Create Transaction)
 app.post('/borrow', async (req, res) => {
     const { itemId, borrower, purpose } = req.body;
     
-    // 1. Find the item
     const item = await Item.findById(itemId);
     if (!item || item.quantity < 1) {
         return res.status(400).json({ error: "Item not available" });
     }
 
-    // 2. Decrease Quantity
     item.quantity -= 1;
     await item.save();
 
-    // 3. Create Receipt
     const newTrans = new Transaction({
         equipmentName: item.name,
         borrower: borrower,
@@ -90,42 +90,32 @@ app.post('/borrow', async (req, res) => {
     res.json(newTrans);
 });
 
-// Return an Item
 app.post('/return/:id', async (req, res) => {
-    // 1. Find the transaction
     const trans = await Transaction.findById(req.params.id);
     if (trans.status === 'Returned') return res.json(trans);
 
-    // 2. Find the original item and increase quantity
     const item = await Item.findOne({ name: trans.equipmentName });
     if (item) {
         item.quantity += 1;
         await item.save();
     }
 
-    // 3. Mark as Returned
     trans.status = 'Returned';
     await trans.save();
     
     res.json(trans);
 });
 
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-    // --- SECURITY ROUTE ---
-app.post('/login', (req, res) => {
-    const { password } = req.body;
-    
-    // The password is now hidden on the server!
-    // In a real app, you would use a database and hash this.
-    if (password === "admin2026") { 
-        res.json({ success: true, token: "secure-token-123" });
-    } else {
-        res.status(401).json({ success: false, message: "Invalid Password" });
-    }
+// --- FORCE PAGES (Helps with Render routing) ---
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// START SERVER
+app.get('/login', (req, res) => {
+    res.sendFile(path.join(__dirname, 'login.html'));
+});
+
+// --- START SERVER (Only Once!) ---
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
-})});
+});
