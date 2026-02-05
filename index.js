@@ -112,4 +112,20 @@ app.post('/return/:id', async (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
+    // --- SECURITY ROUTE ---
+app.post('/login', (req, res) => {
+    const { password } = req.body;
+    
+    // The password is now hidden on the server!
+    // In a real app, you would use a database and hash this.
+    if (password === "admin2026") { 
+        res.json({ success: true, token: "secure-token-123" });
+    } else {
+        res.status(401).json({ success: false, message: "Invalid Password" });
+    }
 });
+
+// START SERVER
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+})});
