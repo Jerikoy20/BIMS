@@ -1,13 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OE-BIMS Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+
+    
     <style>
+        
         :root { --primary-blue: #2563eb; --bg-light: #f3f4f6; --text-dark: #1f2937; }
         body { font-family: 'Inter', sans-serif; background: var(--bg-light); color: var(--text-dark); display: flex; height: 100vh; overflow: hidden; margin: 0; }
         
@@ -50,6 +54,16 @@
     <div class="sidebar">
         <h2 style="color: var(--primary-blue); margin-bottom: 40px;">OE-BIMS</h2>
         <a href="#" class="nav-item active">Dashboard</a>
+
+        <div class="sidebar">
+        <h2 style="color: var(--primary-blue); margin-bottom: 40px;">OE-BIMS</h2>
+        <a href="#" class="nav-item active">Dashboard</a>
+
+        <button onclick="logout()" style="margin-top: auto; padding: 10px; background: #fee2e2; color: #dc2626; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">
+            Logout
+        </button>
+        </div> ```
+
     </div>
 
     <div class="main-content">
@@ -100,6 +114,13 @@
     </div>
 
     <script>
+
+        // SECURITY CHECK: If no key, kick them out immediately!
+        if (localStorage.getItem("isLoggedIn") !== "true") {
+            window.location.href = "login.html";
+        }
+        // ... rest of your code ...
+
         const API_URL = ''; // Relative path for cloud
 
         // --- LOAD DATA ---
@@ -198,6 +219,12 @@
 
         // Start
         refreshData();
+
+        function logout() {
+        localStorage.removeItem("isLoggedIn"); // Deletes the "key"
+        window.location.href = "login.html";   // Kicks you to the login page
+    }
+        
     </script>
 </body>
 </html>
