@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 3000;
 
 // 🔴 PASTE YOUR REAL MONGODB LINK HERE
 // (Make sure to replace <password> and check the cluster address!)
-const MONGO_URI = "mongodb+srv://jerikoykoy_db_user:bims123@cluster0.wahy7zh.mongodb.net/?appName=Cluster0";
+const MONGO_URI = "mongodb+srv://jerikoykoy_db_user:admin2026@cluster0.wahy7zh.mongodb.net/?appName=Cluster0";
 
 app.use(cors());
 app.use(express.json());

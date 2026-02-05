@@ -157,9 +157,14 @@
             </table>
         </div>
 
-        <div class="section-title">Recent Requests</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 30px; margin-bottom: 15px;">
+    <div class="section-title" style="margin: 0;">Recent Requests</div>
+    <button onclick="exportReport()" style="background: #10b981; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-size: 13px;">
+        <i class="fa-solid fa-file-excel"></i> Export Report
+    </button>
+</div>
         <div class="table-box">
-            <table>
+            <table id="report-table">
                 <thead><tr><th>Equipment</th><th>Borrower</th><th>Purpose</th><th>Status</th><th>Action</th></tr></thead>
                 <tbody id="request-list"></tbody>
             </table>
@@ -331,6 +336,40 @@
             localStorage.removeItem("isLoggedIn");
             window.location.href = "login.html";
         }
+
+        function exportReport() {
+        // 1. Select the table
+        const table = document.getElementById("report-table");
+        let rows = table.querySelectorAll("tr");
+        let csvContent = "data:text/csv;charset=utf-8,";
+
+        // 2. Loop through rows and grab text
+        rows.forEach(row => {
+            let cols = row.querySelectorAll("td, th");
+            let rowData = [];
+            
+            // Clean up the text (remove newlines/commas that might break the file)
+            cols.forEach(col => {
+                let text = col.innerText.replace(/,/g, "").replace(/\n/g, " ");
+                // Don't include the "Action" button text
+                if (text !== "Return" && text !== "Action") {
+                    rowData.push(text);
+                }
+            });
+            
+            // Join with commas
+            csvContent += rowData.join(",") + "\r\n";
+        });
+
+        // 3. Trigger Download
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "OE-BIMS_Report.csv");
+        document.body.appendChild(link); // Required for Firefox
+        link.click();
+        document.body.removeChild(link);
+    }
 
         refreshData();
     </script>
