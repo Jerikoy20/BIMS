@@ -113,6 +113,31 @@
             .header-row { flex-direction: column; align-items: flex-start; gap: 10px; }
             .btn-add { width: 100%; }
         }
+
+        /* MOBILE RESPONSIVENESS */
+        @media (max-width: 768px) {
+            body { 
+                flex-direction: column; 
+                height: auto; 
+                overflow-y: auto; 
+            }
+            .sidebar { 
+                width: 100%; 
+                height: auto;
+                border-right: none; 
+                border-bottom: 1px solid #ddd; 
+                padding: 15px; 
+                flex-direction: row; 
+                align-items: center; 
+                justify-content: space-between; 
+            }
+            .sidebar h2 { margin: 0 !important; font-size: 18px; }
+            .nav-item { display: none; } /* Hides links to save space */
+            .main-content { padding: 15px; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .header-row { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .btn-add { width: 100%; }
+        }
     </style>
 </head>
 <body>
@@ -197,7 +222,10 @@
         </div>
     </div>
 
+    
     <script>
+
+        
         // Security Check
         if (localStorage.getItem("isLoggedIn") !== "true") {
             window.location.href = "login.html";
