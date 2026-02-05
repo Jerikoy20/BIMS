@@ -174,9 +174,13 @@
             </div>
         </div>
 
-        <div class="section-title">Equipment Inventory</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 30px; margin-bottom: 15px;">
+    <div class="section-title" style="margin: 0;">Equipment Inventory</div>
+    <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="🔍 Search items..." 
+           style="padding: 8px; border: 1px solid #ccc; border-radius: 6px; width: 200px;">
+</div>
         <div class="table-box">
-            <table>
+            <table> 
                 <thead><tr><th>Name</th><th>Qty</th><th>Actions</th></tr></thead>
                 <tbody id="inventory-list"></tbody>
             </table>
@@ -224,6 +228,31 @@
 
     
     <script>
+
+
+function filterTable() {
+        // 1. Get the input and the table
+        const input = document.getElementById("searchInput");
+        const filter = input.value.toUpperCase();
+        const table = document.getElementById("inventory-list"); // The tbody
+        const tr = table.getElementsByTagName("tr");
+
+        // 2. Loop through all table rows
+        for (let i = 0; i < tr.length; i++) {
+            // Look at the first column (Item Name)
+            const td = tr[i].getElementsByTagName("td")[0];
+            
+            if (td) {
+                const txtValue = td.textContent || td.innerText;
+                // 3. If it matches, show it. If not, hide it.
+                if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                    tr[i].style.display = "";
+                } else {
+                    tr[i].style.display = "none";
+                }
+            }
+        }
+    }
 
         
         // Security Check
