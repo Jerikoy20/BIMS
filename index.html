@@ -1,42 +1,96 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OE-BIMS Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     
     <style>
-        
         :root { --primary-blue: #2563eb; --bg-light: #f3f4f6; --text-dark: #1f2937; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg-light); color: var(--text-dark); display: flex; height: 100vh; overflow: hidden; margin: 0; }
         
-        .sidebar { width: 260px; background: white; border-right: 1px solid #ddd; padding: 20px; display: flex; flex-direction: column; }
-        .nav-item { padding: 12px; display: block; color: gray; text-decoration: none; border-radius: 8px; margin-bottom: 5px;}
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: var(--bg-light); 
+            color: var(--text-dark); 
+            display: flex; 
+            height: 100vh; 
+            overflow: hidden; 
+            margin: 0; 
+        }
+        
+        /* SIDEBAR */
+        .sidebar { 
+            width: 260px; 
+            background: white; 
+            border-right: 1px solid #ddd; 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            flex-shrink: 0; /* Prevents sidebar from shrinking */
+        }
+        .nav-item { 
+            padding: 12px; 
+            display: block; 
+            color: gray; 
+            text-decoration: none; 
+            border-radius: 8px; 
+            margin-bottom: 5px; 
+            display: flex; 
+            align-items: center; 
+            gap: 10px;
+        }
         .nav-item.active { background: var(--primary-blue); color: white; }
         
-        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        /* MAIN CONTENT */
+        .main-content { 
+            flex: 1; 
+            padding: 30px; 
+            overflow-y: auto; 
+            position: relative;
+        }
+        
+        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         
         /* CARDS */
-        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
+        .stats-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Responsive Grid */
+            gap: 20px; 
+            margin-bottom: 30px; 
+        }
         .card { background: white; padding: 20px; border-radius: 12px; border: 1px solid #ddd; }
         .card h2 { font-size: 28px; font-weight: 700; margin: 5px 0 0 0; }
         
+        /* CHART SECTION */
+        .chart-container {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap; /* Fixes the "squashed" text issue */
+        }
+        .chart-box { width: 250px; height: 250px; position: relative; }
+
         /* TABLES */
         .section-title { font-size: 18px; font-weight: 700; margin-bottom: 15px; margin-top: 30px; }
-        .table-box { background: white; border-radius: 12px; border: 1px solid #ddd; overflow: hidden; }
-        table { width: 100%; border-collapse: collapse; }
+        .table-box { background: white; border-radius: 12px; border: 1px solid #ddd; overflow: hidden; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; } /* Ensures table doesn't break on small screens */
         th { text-align: left; padding: 15px; background: #f9fafb; font-size: 12px; color: gray; }
         td { padding: 15px; font-size: 14px; border-bottom: 1px solid #eee; }
         
         /* BUTTONS */
-        .btn-add { background: var(--primary-blue); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; float: right; }
-        .btn-borrow { background: #0ea5e9; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-right: 5px; }
+        .btn-add { background: var(--primary-blue); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; }
+        .btn-borrow { background: #0ea5e9; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
         .btn-return { background: #22c55e; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .btn-logout { margin-top: auto; padding: 10px; background: #fee2e2; color: #dc2626; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; }
         
         /* BADGES */
         .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
@@ -44,45 +98,55 @@
         .status-Returned { background: #dcfce7; color: #16a34a; }
 
         /* MODAL */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
-        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 350px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 350px; }
         input { width: 100%; padding: 10px; margin: 5px 0 15px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+
+        /* MOBILE FIXES */
+        @media (max-width: 768px) {
+            body { flex-direction: column; height: auto; overflow: auto; }
+            .sidebar { width: 100%; border-right: none; border-bottom: 1px solid #ddd; padding: 15px; flex-direction: row; align-items: center; justify-content: space-between; }
+            .sidebar h2 { margin: 0 !important; font-size: 18px; }
+            .nav-item { display: none; } /* Hide menu links on mobile for now to save space */
+            .btn-logout { width: auto; margin: 0; padding: 8px 15px; font-size: 12px; }
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            .header-row { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .btn-add { width: 100%; }
+        }
     </style>
 </head>
 <body>
 
     <div class="sidebar">
         <h2 style="color: var(--primary-blue); margin-bottom: 40px;">OE-BIMS</h2>
-        <a href="#" class="nav-item active">Dashboard</a>
-
-        <div class="sidebar">
-        <h2 style="color: var(--primary-blue); margin-bottom: 40px;">OE-BIMS</h2>
-        <a href="#" class="nav-item active">Dashboard</a>
-
-        <button onclick="logout()" style="margin-top: auto; padding: 10px; background: #fee2e2; color: #dc2626; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%;">
-            Logout
+        <a href="#" class="nav-item active"><i class="fa-solid fa-table-columns"></i> Dashboard</a>
+        
+        <button onclick="logout()" class="btn-logout">
+            <i class="fa-solid fa-right-from-bracket"></i> Logout
         </button>
-        </div> 
-
     </div>
 
     <div class="main-content">
-        <button class="btn-add" onclick="openAddModal()">+ Add Item</button>
-        <h1>Dashboard</h1>
+        <div class="header-row">
+            <h1>Dashboard</h1>
+            <button class="btn-add" onclick="openAddModal()">+ Add Item</button>
+        </div>
 
         <div class="stats-grid">
             <div class="card"><h4>Total Items</h4><h2 id="total-count">0</h2></div>
             <div class="card"><h4>Transactions</h4><h2 id="trans-count">0</h2></div>
+        </div>
 
-            <div class="table-box" style="margin-bottom: 30px; padding: 20px; display: flex; align-items: center; justify-content: space-around;">
-    <div style="width: 300px;">
-        <canvas id="myChart"></canvas>
-    </div>
-    <div>
-        <h3>Inventory Status</h3>
-        <p style="color: gray; font-size: 14px;">Real-time tracking of borrowed assets</p>
-    </div>
-</div>  
+        <div class="chart-container">
+            <div class="chart-box">
+                <canvas id="myChart"></canvas>
+            </div>
+            <div>
+                <h3>Inventory Status</h3>
+                <p style="color: gray; font-size: 14px; max-width: 200px;">
+                    Real-time visualization of your <br> released vs. available assets.
+                </p>
+            </div>
         </div>
 
         <div class="section-title">Equipment Inventory</div>
@@ -108,8 +172,10 @@
             <input id="new-name" placeholder="Item Name">
             <input id="new-qty" placeholder="Quantity" type="number">
             <input id="new-price" placeholder="Price" type="number">
-            <button class="btn-add" onclick="saveNewItem()">Save</button>
-            <button onclick="document.getElementById('addModal').style.display='none'" style="margin-left: 10px;">Cancel</button>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button onclick="document.getElementById('addModal').style.display='none'" style="padding: 10px; border:none; background: #ddd; border-radius: 6px; cursor: pointer;">Cancel</button>
+                <button class="btn-add" onclick="saveNewItem()">Save</button>
+            </div>
         </div>
     </div>
 
@@ -118,73 +184,105 @@
             <h3>Borrow Equipment</h3>
             <input id="borrower-name" placeholder="Borrower Name">
             <input id="borrow-purpose" placeholder="Purpose">
-            <input type="hidden" id="borrow-id"> <button class="btn-add" onclick="confirmBorrow()">Confirm</button>
-            <button onclick="document.getElementById('borrowModal').style.display='none'" style="margin-left: 10px;">Cancel</button>
+            <input type="hidden" id="borrow-id">
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button onclick="document.getElementById('borrowModal').style.display='none'" style="padding: 10px; border:none; background: #ddd; border-radius: 6px; cursor: pointer;">Cancel</button>
+                <button class="btn-add" onclick="confirmBorrow()">Confirm</button>
+            </div>
         </div>
     </div>
 
     <script>
-
-        // SECURITY CHECK: If no key, kick them out immediately!
+        // Security Check
         if (localStorage.getItem("isLoggedIn") !== "true") {
             window.location.href = "login.html";
         }
-        // ... rest of your code ...
 
-        const API_URL = ''; // Relative path for cloud
+        let myChart = null; 
 
-        // --- LOAD DATA ---
         async function refreshData() {
-            // 1. Get Inventory
-            const resItems = await fetch('/items');
-            const items = await resItems.json();
-            
-            const invList = document.getElementById('inventory-list');
-            invList.innerHTML = '';
-            let totalQty = 0;
+            try {
+                // 1. Get Inventory
+                const resItems = await fetch('/items');
+                const items = await resItems.json();
+                
+                const invList = document.getElementById('inventory-list');
+                invList.innerHTML = '';
+                let totalQty = 0;
 
-            items.forEach(item => {
-                totalQty += item.quantity;
-                invList.innerHTML += `
-                    <tr>
-                        <td><strong>${item.name}</strong></td>
-                        <td>${item.quantity} units</td>
-                        <td>
-                            <button class="btn-borrow" onclick="openBorrowModal('${item._id}')">Borrow</button>
-                        </td>
-                    </tr>
-                `;
-            });
-            document.getElementById('total-count').innerText = totalQty;
+                items.forEach(item => {
+                    totalQty += item.quantity;
+                    invList.innerHTML += `
+                        <tr>
+                            <td><strong>${item.name}</strong></td>
+                            <td>${item.quantity} units</td>
+                            <td><button class="btn-borrow" onclick="openBorrowModal('${item._id}')">Borrow</button></td>
+                        </tr>
+                    `;
+                });
+                document.getElementById('total-count').innerText = totalQty;
 
-            // 2. Get Transactions
-            const resTrans = await fetch('/transactions');
-            const transactions = await resTrans.json();
-            
-            const reqList = document.getElementById('request-list');
-            reqList.innerHTML = '';
-            document.getElementById('trans-count').innerText = transactions.length;
+                // 2. Get Transactions
+                const resTrans = await fetch('/transactions');
+                const transactions = await resTrans.json();
+                
+                const reqList = document.getElementById('request-list');
+                reqList.innerHTML = '';
+                document.getElementById('trans-count').innerText = transactions.length;
 
-            transactions.forEach(t => {
-                let actionBtn = '';
-                if (t.status === 'Released') {
-                    actionBtn = `<button class="btn-return" onclick="returnItem('${t._id}')">Return</button>`;
-                }
+                // --- CHART CALCULATION ---
+                let releasedCount = 0;
+                let returnedCount = 0;
 
-                reqList.innerHTML += `
-                    <tr>
-                        <td>${t.equipmentName}</td>
-                        <td>${t.borrower}</td>
-                        <td>${t.purpose}</td>
-                        <td><span class="badge status-${t.status}">${t.status}</span></td>
-                        <td>${actionBtn}</td>
-                    </tr>
-                `;
-            });
+                transactions.forEach(t => {
+                    if(t.status === 'Released') releasedCount++;
+                    if(t.status === 'Returned') returnedCount++;
+
+                    let actionBtn = '';
+                    if (t.status === 'Released') {
+                        actionBtn = `<button class="btn-return" onclick="returnItem('${t._id}')">Return</button>`;
+                    }
+
+                    reqList.innerHTML += `
+                        <tr>
+                            <td>${t.equipmentName}</td>
+                            <td>${t.borrower}</td>
+                            <td>${t.purpose}</td>
+                            <td><span class="badge status-${t.status}">${t.status}</span></td>
+                            <td>${actionBtn}</td>
+                        </tr>
+                    `;
+                });
+
+                // --- DRAW CHART ---
+                const ctx = document.getElementById('myChart').getContext('2d');
+                if(myChart) myChart.destroy();
+
+                myChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Released', 'Returned'],
+                        datasets: [{
+                            data: [releasedCount, returnedCount],
+                            backgroundColor: ['#9333ea', '#16a34a'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom' }
+                        }
+                    }
+                });
+
+            } catch (err) {
+                console.error("Error loading data:", err);
+            }
         }
 
         // --- ACTIONS ---
-
         async function saveNewItem() {
             const name = document.getElementById('new-name').value;
             const quantity = document.getElementById('new-qty').value;
@@ -202,6 +300,10 @@
         function openBorrowModal(id) {
             document.getElementById('borrow-id').value = id;
             document.getElementById('borrowModal').style.display = 'flex';
+        }
+        
+        function openAddModal() {
+            document.getElementById('addModal').style.display = 'flex';
         }
 
         async function confirmBorrow() {
@@ -225,16 +327,12 @@
             }
         }
 
-        function openAddModal() { document.getElementById('addModal').style.display = 'flex'; }
-
-        // Start
-        refreshData();
-
         function logout() {
-        localStorage.removeItem("isLoggedIn"); // Deletes the "key"
-        window.location.href = "login.html";   // Kicks you to the login page
-    }
-        
+            localStorage.removeItem("isLoggedIn");
+            window.location.href = "login.html";
+        }
+
+        refreshData();
     </script>
 </body>
 </html>
